@@ -19,43 +19,27 @@ function tabIcon(active: IconName, inactive: IconName) {
   return TabIcon;
 }
 
-/** Cinco abas na parte de baixo, nesta ordem: Hoje, Remédios, Histórico, Ajuda e Ajustes (CLAUDE.md). */
+/**
+ * Quatro abas, ligadas às tarefas do dia a dia: Hoje, Remédios, Histórico e Ajuda.
+ * Ajustes (tamanho da letra, avisos) fica no botão "Ajustes" do cabeçalho dessas telas.
+ * Os cabeçalhos são do próprio app (componente Screen).
+ */
 export default function TabsLayout() {
-  const { colors, font } = useTheme();
+  const { colors } = useTheme();
   return (
     <Tabs
       tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
-        headerTintColor: colors.onPrimary,
-        headerTitleStyle: { fontSize: font.heading, fontWeight: '700' },
-        sceneStyle: { backgroundColor: colors.background },
-      }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Hoje', tabBarIcon: tabIcon('today', 'today-outline') }}
-      />
+      <Tabs.Screen name="index" options={{ title: 'Hoje', tabBarIcon: tabIcon('today', 'today-outline') }} />
       <Tabs.Screen
         name="medicamentos"
-        options={{
-          title: 'Remédios',
-          // A aba tem a própria pilha (lista, cadastro e edição), com o cabeçalho dela.
-          headerShown: false,
-          tabBarIcon: tabIcon('medkit', 'medkit-outline'),
-        }}
+        options={{ title: 'Remédios', tabBarIcon: tabIcon('medkit', 'medkit-outline') }}
       />
-      <Tabs.Screen
-        name="historico"
-        options={{ title: 'Histórico', tabBarIcon: tabIcon('time', 'time-outline') }}
-      />
+      <Tabs.Screen name="historico" options={{ title: 'Histórico', tabBarIcon: tabIcon('time', 'time-outline') }} />
       <Tabs.Screen
         name="ajuda"
         options={{ title: 'Ajuda', tabBarIcon: tabIcon('help-circle', 'help-circle-outline') }}
-      />
-      <Tabs.Screen
-        name="configuracoes"
-        options={{ title: 'Ajustes', tabBarIcon: tabIcon('settings', 'settings-outline') }}
       />
     </Tabs>
   );

@@ -30,24 +30,28 @@ Protótipo de lembrete de medicamentos para idosos com doenças crônicas que us
 - Todos os dados ficam no aparelho e são apagados pelo botão "Apagar tudo".
 
 ## Navegação (abas inferiores)
-- O app tem uma barra de abas fixa na parte de baixo, com no máximo 5 abas e rótulos sempre visíveis, com ícone e texto.
-- Abas, nesta ordem: **Hoje** (tela de início), **Remédios** (lista e cadastro), **Histórico**, **Ajuda** e **Ajustes**.
+- O app tem uma barra de abas fixa na parte de baixo, com quatro abas e rótulos sempre visíveis, com ícone e texto.
+- Abas, nesta ordem: **Hoje** (tela de início), **Remédios** (lista e cadastro), **Histórico** e **Ajuda**.
+- **Ajustes** não é aba: abre pelo botão "Ajustes" (ícone e texto) no cabeçalho das telas Hoje, Remédios, Histórico e Ajuda. As telas abertas a partir de uma aba têm o botão "Voltar" com texto.
 - O botão "Cadastrar medicamento" da tela Hoje também abre a aba Remédios.
-- Cada aba tem texto de 20 px ou mais e área de toque de pelo menos 44 px.
+- Cada aba tem texto de 20 px ou mais e área de toque de pelo menos 44 px. O texto acompanha a ampliação de fonte do sistema e nunca é reduzido nem cortado; se não couber numa linha, a barra passa para duas linhas.
 - A aba ativa aparece com cor e peso de fonte diferentes, e não só pela cor.
-- Ajustes tem: tamanho da letra, apagar tudo, e (na fase 2) familiares vinculados.
+- Ajustes tem: tamanho da letra, intervalo de repetição do aviso, aviso de teste, refazer o questionário, apagar tudo, e (na fase 2) familiares vinculados.
+- Sair de um formulário com alterações não salvas pede confirmação, inclusive pelo botão ou gesto de voltar do Android.
 
 ## Telas (do protótipo)
 1. Início: próximo lembrete em destaque, botão "Já tomei" e lista dos próximos horários do dia.
-2. Registro: pergunta "Você tomou?" com "Sim, tomei" e "Ainda não". Confirmação "Registro salvo com sucesso".
-3. Histórico: dias anteriores com status de cada horário (tomado ou pendente).
-4. Ajuda ("Esqueci um horário"): orienta a não tomar dose extra, leva às instruções da receita e tem o botão "Pedir ajuda", que abre o discador com o número de um contato cadastrado (ver seção abaixo).
+2. Registro: pergunta "Você tomou?" com "Sim, tomei" e "Ainda não". Confirmação "Registro salvo com sucesso". Quando houver mais de um medicamento no mesmo horário, a tela lista todos e deixa claro que serão registrados juntos.
+3. Histórico: dias anteriores com status de cada horário (tomado ou sem confirmação), com o horário previsto e a hora real do registro.
+4. Ajuda ("Esqueci um horário"): orienta a não tomar dose extra, leva às instruções da receita (observações de cada medicamento, na aba Remédios) e tem o botão "Pedir ajuda", que abre o discador com o número de um contato cadastrado (ver seção abaixo).
 5. Cadastro de medicamento: nome, horário(s), observação livre. Pode ser editado e removido.
+6. Ajustes: aberto pelo cabeçalho (ver Navegação).
 
 ## Comportamento
 - Aviso no horário marcado. Se não for confirmado, repete após 10 minutos (padrão), com intervalo configurável.
 - "Já tomei" registra a dose com data e hora. "Ainda não" repete o aviso.
-- O histórico mostra o que foi confirmado e o que ficou pendente.
+- O histórico mostra o que foi confirmado e o que ficou sem confirmação.
+- "Sem confirmação" quer dizer só que o registro não foi feito no app. O app não afirma que a pessoa deixou de tomar, e "Tomado" quer dizer registro confirmado, não avaliação clínica.
 
 ## Pedido de ajuda por ligação (fase 1)
 - Na tela de ajuda, cadastre um ou mais contatos de ajuda: nome e telefone (familiar, cuidador ou equipe de saúde).
@@ -61,7 +65,7 @@ Protótipo de lembrete de medicamentos para idosos com doenças crônicas que us
 ## Dados e privacidade
 - Dados de saúde são sensíveis. Na versão 1, tudo fica no próprio aparelho (armazenamento local). Não há conta, login nem envio para servidor.
 - Não coletar dados pessoais além do necessário: nome do medicamento e horários.
-- Permitir apagar todos os dados a qualquer momento.
+- Permitir apagar todos os dados a qualquer momento. "Apagar tudo" pede confirmação, cancela todos os avisos e repetições, apaga medicamentos, registros, contatos e preferências, e volta ao primeiro acesso. Se falhar, não mostra sucesso.
 - Não enviar dados para terceiros nem usar analytics de terceiros.
 
 ## Stack (app nativo)

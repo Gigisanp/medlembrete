@@ -32,7 +32,7 @@ describe('cadastro de medicamento', () => {
 
     // Volta para a lista da aba Remédios
     await waitFor(() => expect(screen).toHavePathname('/medicamentos'));
-    expect(await screen.findByText('Horários: 07:30')).toBeOnTheScreen();
+    expect(await screen.findByText('07:30')).toBeOnTheScreen();
     expect(screen.getByRole('tab', { name: 'Remédios', selected: true })).toBeOnTheScreen();
 
     // O formulário não fica "preso" na aba: voltar a ela mostra a lista
@@ -48,21 +48,21 @@ describe('cadastro de medicamento', () => {
   it('edita e remove um medicamento', async () => {
     const db = await databaseAfterOnboarding([{ name: 'Remédio A', note: '', times: ['08:00'] }]);
     await renderApp();
-    await screen.findByText('08:00 — Remédio A');
+    await screen.findByRole('tab', { name: 'Hoje', selected: true });
     await fireEvent.press(screen.getByRole('tab', { name: 'Remédios' }));
 
     await press('Editar Remédio A');
     expect(screen.getByDisplayValue('Remédio A')).toBeOnTheScreen();
     await type('Horário 1', '09:00');
     await press('Salvar alterações');
-    expect(await screen.findByText('Horários: 09:00')).toBeOnTheScreen();
+    expect(await screen.findByText('09:00')).toBeOnTheScreen();
 
     await press('Editar Remédio A');
     await press('Remover medicamento');
     expect(screen.getByText('Remover "Remédio A" e todos os horários dele?')).toBeOnTheScreen();
     await press('Sim, remover');
 
-    expect(await screen.findByText('Você ainda não tem medicamentos cadastrados.')).toBeOnTheScreen();
+    expect(await screen.findByText('Nenhum remédio cadastrado')).toBeOnTheScreen();
     expect(await listMedications(db as unknown as Db)).toEqual([]);
   });
 });

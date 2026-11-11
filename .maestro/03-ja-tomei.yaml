@@ -1,0 +1,21 @@
+# "Já tomei": cadastra um horário que acabou de passar, confirma e confere no Histórico.
+appId: host.exp.exponent
+---
+- runFlow: _abrir-app-limpo.yaml
+- evalScript: ${output.hora = (function () { const d = new Date(Date.now() - 2 * 60000); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); })()}
+- tapOn: "Remédios"
+- tapOn: "Cadastrar medicamento"
+- tapOn: "Nome do medicamento"
+- inputText: "Remédio Teste"
+- tapOn: "Horário 1"
+- inputText: ${output.hora}
+- hideKeyboard
+- tapOn: "Salvar medicamento"
+- tapOn: "Hoje"
+- assertVisible: "Ainda não confirmado"
+- tapOn: "Já tomei"
+- assertVisible: "✓ Registro salvo com sucesso"
+- assertVisible: "Registrado às.*"
+- tapOn: "Voltar para Hoje"
+- tapOn: "Histórico"
+- assertVisible: "Tomado às.*"

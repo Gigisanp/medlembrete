@@ -34,6 +34,7 @@ const listeners = new Set<() => void>();
 
 export function __reset() {
   scheduled = [];
+  presented = [];
   permission = { status: 'undetermined', granted: false, canAskAgain: true };
   permissionAfterRequest = { status: 'granted', granted: true, canAskAgain: true };
   lastResponse = null;
@@ -84,6 +85,18 @@ export const cancelScheduledNotificationAsync = jest.fn(async (identifier: strin
 
 export const cancelAllScheduledNotificationsAsync = jest.fn(async () => {
   scheduled = [];
+});
+
+/** Avisos que já apareceram na central de notificações. */
+let presented: string[] = [];
+export function __setPresented(ids: string[]) {
+  presented = ids;
+}
+export function __getPresented() {
+  return presented;
+}
+export const dismissAllNotificationsAsync = jest.fn(async () => {
+  presented = [];
 });
 
 export function useLastNotificationResponse() {

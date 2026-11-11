@@ -1,0 +1,24 @@
+# Subfluxo: abre o projeto no Expo Go com os dados apagados e passa pelo primeiro acesso.
+appId: host.exp.exponent
+---
+- launchApp:
+    clearState: true
+- openLink: ${EXPO_URL}
+- extendedWaitUntil:
+    visible: "Qual é a sua idade?"
+    timeout: 60000
+- tapOn: "Idade em anos"
+- inputText: "72"
+- tapOn: "Continuar"
+- tapOn: "Pular"
+- assertVisible: "Estes são os horários que a sua receita indicou. Confira com atenção."
+- tapOn: "Confirmar"
+- assertVisible: "Avisos na hora do remédio"
+- tapOn: "Permitir avisos"
+- tapOn:
+    text: "Permitir|Allow"
+    optional: true
+- tapOn:
+    text: "Continuar"
+    optional: true
+- assertVisible: "Nenhum remédio cadastrado"

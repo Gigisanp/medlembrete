@@ -10,22 +10,20 @@ import { NotificationResponder } from '@/notifications/NotificationResponder';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { colors } from '@/theme/tokens';
 
+/**
+ * Pilha principal. Os cabeçalhos são desenhados pelo próprio app (componente Screen),
+ * para o título quebrar linha e "Voltar" e "Ajustes" terem texto visível.
+ * O botão físico e o gesto de voltar do Android continuam funcionando pela pilha.
+ */
 function AppStack() {
-  const { colors, font } = useTheme();
+  const { colors } = useTheme();
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
-        headerTintColor: colors.onPrimary,
-        headerTitleStyle: { fontSize: font.heading, fontWeight: '700' },
-        headerBackTitle: 'Voltar',
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="questionario" options={{ title: 'Primeiros passos' }} />
-      <Stack.Screen name="registro" options={{ title: 'Registro' }} />
-      <Stack.Screen name="permissao" options={{ title: 'Avisos' }} />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="configuracoes" />
+      <Stack.Screen name="questionario" />
+      <Stack.Screen name="registro" />
+      <Stack.Screen name="permissao" />
     </Stack>
   );
 }
@@ -41,7 +39,7 @@ function ThemedApp() {
   }
   return (
     <ThemeProvider fontSize={settings.fontSize ?? 'normal'} onFontSizeChange={setFontSize}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <AppStack />
       <NotificationResponder />
     </ThemeProvider>

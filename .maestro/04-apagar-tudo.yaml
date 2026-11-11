@@ -1,0 +1,28 @@
+# "Apagar tudo": cria dados, apaga com confirmação e confere a volta ao primeiro acesso.
+appId: host.exp.exponent
+---
+- runFlow: _abrir-app-limpo.yaml
+- tapOn: "Remédios"
+- tapOn: "Cadastrar medicamento"
+- tapOn: "Nome do medicamento"
+- inputText: "Remédio Teste"
+- tapOn: "Horário 1"
+- inputText: "20:00"
+- hideKeyboard
+- tapOn: "Salvar medicamento"
+- tapOn: "Ajuda"
+- tapOn: "Cadastrar contato de ajuda"
+- tapOn: "Nome"
+- inputText: "Contato Teste"
+- tapOn: "Telefone com DDD"
+- inputText: "11900000000"
+- hideKeyboard
+- tapOn: "Salvar contato"
+- tapOn: "Ajustes"
+- scrollUntilVisible:
+    element: "Apagar tudo"
+- tapOn: "Apagar tudo"
+- assertVisible: "Tem certeza? Não dá para desfazer."
+- tapOn: "Sim, apagar tudo"
+- assertVisible: "Os seus dados foram apagados"
+- assertVisible: "Qual é a sua idade?"

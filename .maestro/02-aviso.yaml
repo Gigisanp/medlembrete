@@ -1,0 +1,18 @@
+# Aviso: dispara o aviso de teste e confere que ele aparece com o app fora da tela (Android).
+appId: host.exp.exponent
+---
+- runFlow: _abrir-app-limpo.yaml
+- tapOn: "Ajustes"
+- scrollUntilVisible:
+    element: "Testar aviso"
+- tapOn: "Testar aviso"
+- assertVisible: "Aviso de teste marcado.*"
+- pressKey: Home
+- swipe:
+    start: 50%, 0%
+    end: 50%, 80%
+- extendedWaitUntil:
+    visible: "Aviso de teste"
+    timeout: 30000
+- tapOn: "Aviso de teste"
+- assertVisible: "Este foi só um teste"

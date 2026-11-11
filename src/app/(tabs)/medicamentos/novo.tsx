@@ -7,14 +7,12 @@ import { useAppData } from '@/data/AppDataProvider';
 export default function NewMedicationScreen() {
   const { saveMedication } = useAppData();
   return (
-    <Screen>
+    <Screen title="Cadastrar medicamento" back>
       <MedicationForm
         submitLabel="Salvar medicamento"
-        onSubmit={async (input) => {
-          await saveMedication(input);
-          // Vai para a lista da aba, mesmo quando o cadastro foi aberto pela tela Hoje.
-          router.dismissTo('/medicamentos');
-        }}
+        onSave={(input) => saveMedication(input)}
+        // Vai para a lista da aba, mesmo quando o cadastro foi aberto pela tela Hoje.
+        onSaved={() => router.dismissTo('/medicamentos')}
       />
     </Screen>
   );

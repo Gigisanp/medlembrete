@@ -70,9 +70,9 @@ describe('questionário inicial', () => {
     await press('Permitir avisos');
 
     // Tela Hoje com os medicamentos salvos
-    expect(await screen.findByText('Horários de hoje')).toBeOnTheScreen();
+    expect(await screen.findByText('Outros horários de hoje')).toBeOnTheScreen();
     expect(screen).toHavePathname('/');
-    expect(screen.getByText('08:00 — Remédio A')).toBeOnTheScreen();
+    expect(screen.getAllByText('Remédio A').length).toBeGreaterThan(0);
     expect(screen.getByText('1 medicamento está sem horário e não gera aviso.')).toBeOnTheScreen();
 
     // E no banco
@@ -97,7 +97,7 @@ describe('questionário inicial', () => {
     await screen.findByText('Avisos na hora do remédio');
     await press('Agora não');
 
-    expect(await screen.findByText('Você ainda não tem medicamentos cadastrados.')).toBeOnTheScreen();
+    expect(await screen.findByText('Nenhum remédio cadastrado')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Cadastrar medicamento' })).toBeOnTheScreen();
     expect(await getSettings(db as unknown as Db)).toMatchObject({ onboardingDone: true, age: null, fontSize: null });
   });

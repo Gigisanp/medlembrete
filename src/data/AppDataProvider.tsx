@@ -5,8 +5,11 @@ import { AppState } from 'react-native';
 import {
   completeOnboarding as completeOnboardingDb,
   confirmSlot,
+  createContact,
   createMedication,
+  deleteContact,
   deleteMedication,
+  listContacts,
   getSettings,
   listDoseLogsSince,
   listMedications,
@@ -15,10 +18,13 @@ import {
   saveFontSize,
   saveRepeatMinutes,
   snoozeSlot,
+  updateContact,
   updateMedication,
+  wipeAllData,
   type Db,
   type Settings,
 } from '@/db/repository';
+import type { HelpContact, HelpContactInput } from '@/domain/contact';
 import {
   addDays,
   dateKey,
@@ -29,6 +35,7 @@ import {
 } from '@/domain/doses';
 import type { Medication, MedicationInput } from '@/domain/medication';
 import {
+  cancelAllNotifications,
   getPermission,
   requestPermission,
   SCHEDULE_LIMIT,
@@ -37,8 +44,8 @@ import {
 } from '@/notifications/service';
 import type { FontSizeOption } from '@/theme/tokens';
 
-/** Quantos dias de registros ficam carregados na memória (o banco guarda tudo). */
-const LOG_DAYS = 8;
+/** Quantos dias de registros ficam carregados na memória (o histórico mostra 30). O banco guarda tudo. */
+const LOG_DAYS = 31;
 
 type Permission = { state: PermissionState; canAskAgain: boolean };
 
@@ -48,6 +55,7 @@ type AppData = {
   medications: Medication[];
   logs: DoseLog[];
   snoozes: Snooze[];
+  contacts: HelpContact[];
   permission: Permission;
   /** Cria (sem id) ou atualiza (com id) um medicamento. */
   saveMedication: (input: MedicationInput, id?: number) => Promise<void>;
@@ -61,6 +69,14 @@ type AppData = {
   snoozeDose: (date: string, time: string) => Promise<Date>;
   requestNotificationPermission: () => Promise<Permission>;
   markNotificationsAsked: () => Promise<void>;
+  /** Cria (sem id) ou atualiza (com id) um contato de ajuda. */
+  saveContact: (input: HelpContactInput, id?: number) => Promise<void>;
+  removeContact: (id: number) => Promise<void>;
+  /**
+   * "Apagar tudo": cancela os avisos e apaga todos os dados locais.
+   * Se algo falhar, lança erro e não apaga nada do banco (ou reagenda os avisos, se o banco falhar).
+   */
+  eraseAll: () => Promise<void>;
 };
 
 const AppDataContext = createContext<AppData | null>(null);
@@ -81,6 +97,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [logs, setLogs] = useState<DoseLog[]>([]);
   const [snoozes, setSnoozes] = useState<Snooze[]>([]);
+  const [contacts, setContacts] = useState<HelpContact[]>([]);
   const [permission, setPermission] = useState<Permission>({ state: 'undetermined', canAskAgain: true });
   // Muda quando o app volta para a frente, para reagendar a janela de dias.
   const [foregroundTick, setForegroundTick] = useState(0);
@@ -91,7 +108,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const nextMedications = await listMedications(db);
     const nextLogs = await listDoseLogsSince(db, since);
     const nextSnoozes = await listSnoozesSince(db, since);
+    const nextContacts = await listContacts(db);
     setSettings(nextSettings);
+    setContacts(nextContacts);
     setMedications(nextMedications);
     setLogs(nextLogs);
     setSnoozes(nextSnoozes);
@@ -105,8 +124,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Carga inicial do banco e da permissão. O estado só muda depois da leitura (assíncrona).
   useEffect(() => {
-    Promise.all([reload(), refreshPermission()]).then(() => setReady(true));
+    let cancelled = false;
+    const load = async () => {
+      await Promise.all([reload(), refreshPermission()]);
+      if (!cancelled) setReady(true);
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [reload, refreshPermission]);
 
   // Ao voltar para o app: confere a permissão (pode ter mudado nos ajustes) e reagenda.
@@ -213,6 +241,37 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     await markNotificationsAskedDb(db);
   }, [db]);
 
+  const saveContact = useCallback(
+    async (input: HelpContactInput, id?: number) => {
+      if (id == null) await createContact(db, input);
+      else await updateContact(db, id, input);
+      await reload();
+    },
+    [db, reload],
+  );
+
+  const removeContact = useCallback(
+    async (id: number) => {
+      await deleteContact(db, id);
+      await reload();
+    },
+    [db, reload],
+  );
+
+  const eraseAll = useCallback(async () => {
+    // 1) Primeiro os avisos: se não der para cancelar, nada é apagado.
+    await cancelAllNotifications();
+    // 2) Depois os dados, numa transação só.
+    try {
+      await wipeAllData(db);
+    } catch (error) {
+      // O banco continua como estava: reagenda os avisos que foram cancelados.
+      setForegroundTick((t) => t + 1);
+      throw error;
+    }
+    await reload();
+  }, [db, reload]);
+
   const value = useMemo<AppData>(
     () => ({
       ready,
@@ -220,6 +279,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       medications,
       logs,
       snoozes,
+      contacts,
       permission,
       saveMedication,
       removeMedication,
@@ -230,6 +290,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       snoozeDose,
       requestNotificationPermission,
       markNotificationsAsked,
+      saveContact,
+      removeContact,
+      eraseAll,
     }),
     [
       ready,
@@ -237,6 +300,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       medications,
       logs,
       snoozes,
+      contacts,
       permission,
       saveMedication,
       removeMedication,
@@ -247,6 +311,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       snoozeDose,
       requestNotificationPermission,
       markNotificationsAsked,
+      saveContact,
+      removeContact,
+      eraseAll,
     ],
   );
 

@@ -2,27 +2,22 @@ import { Stack } from 'expo-router';
 
 import { useTheme } from '@/theme/ThemeProvider';
 
-// Ao abrir o cadastro direto (pela tela Hoje), "Voltar" leva à lista de medicamentos.
+// Ao abrir o cadastro direto (pela tela Hoje), "Voltar" leva à lista de remédios.
 export const unstable_settings = {
   anchor: 'index',
 };
 
-/** Pilha da aba Remédios: lista, cadastro e edição, com a barra de abas sempre visível. */
+/**
+ * Pilha da aba Remédios: lista, cadastro e edição, com a barra de abas sempre visível.
+ * Os cabeçalhos são do próprio app (componente Screen).
+ */
 export default function MedicationsLayout() {
-  const { colors, font } = useTheme();
+  const { colors } = useTheme();
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
-        headerTintColor: colors.onPrimary,
-        headerTitleStyle: { fontSize: font.heading, fontWeight: '700' },
-        headerBackTitle: 'Voltar',
-        contentStyle: { backgroundColor: colors.background },
-      }}
-    >
-      <Stack.Screen name="index" options={{ title: 'Remédios' }} />
-      <Stack.Screen name="novo" options={{ title: 'Cadastrar medicamento' }} />
-      <Stack.Screen name="[id]" options={{ title: 'Editar medicamento' }} />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="novo" />
+      <Stack.Screen name="[id]" />
     </Stack>
   );
 }

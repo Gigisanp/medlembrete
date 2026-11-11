@@ -1,26 +1,51 @@
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
-import { MIN_TOUCH_SIZE, spacing } from '@/theme/tokens';
+import { MIN_TOUCH_SIZE, radius, spacing } from '@/theme/tokens';
 
 /**
- * Texto das abas: 20 px (CLAUDE.md).
- * Medição (pior caso, aba ativa em negrito): 358 px no iPhone (SF Pro) e 352 px no Android (Roboto).
- * Cabe nas telas de 360 px ou mais. Em telas mais estreitas, desce até 18 px (TAB_LABEL_MIN_SIZE).
- * Não cresce com a letra grande do app nem com a do sistema, para as cinco abas caberem.
+ * Texto das abas: 20 px (CLAUDE.md), ampliado pelo sistema sem limite e sem redução automática.
+ * Com quatro abas, os nomes cabem numa linha nas telas comuns. Se não couberem
+ * (tela estreita ou fonte muito ampliada), a barra passa para duas linhas (2 + 2)
+ * e o nome pode quebrar linha. Nunca é cortado nem diminuído.
  */
 export const TAB_LABEL_SIZE = 20;
-export const TAB_LABEL_MIN_SIZE = 18;
 export const TAB_ICON_SIZE = 28;
+
+/** Esconde a barra enquanto o teclado está aberto no Android, para não cobrir o formulário. */
+function useKeyboardOpen(): boolean {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const show = Keyboard.addListener('keyboardDidShow', () => setOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return open;
+}
 
 /**
  * Barra de abas inferior. Cada aba tem ícone e texto visíveis.
  * A aba ativa se diferencia por quatro sinais, não só pela cor:
- * cor, texto em negrito, ícone preenchido e uma faixa no topo.
+ * fundo lilás atrás do ícone, ícone preenchido, texto em negrito e cor roxa.
  */
 export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: BottomTabBarProps) {
   const { colors } = useTheme();
+  const { width, fontScale } = useWindowDimensions();
+  const keyboardOpen = useKeyboardOpen();
+
+  // Detecta se as abas quebraram de linha; nesse caso, organiza em 2 + 2.
+  const layoutKey = `${width}-${fontScale}`;
+  const [wrapped, setWrapped] = useState<{ key: string; value: boolean }>({ key: '', value: false });
+  const twoRows = wrapped.key === layoutKey && wrapped.value;
+  const itemTops = new Map<number, number>();
+
+  if (keyboardOpen) return null;
 
   return (
     <View
@@ -28,9 +53,11 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
       style={[
         styles.bar,
         {
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
+          backgroundColor: colors.card,
+          borderTopColor: colors.borderSoft,
           paddingBottom: Math.max(insets.bottom, spacing.sm),
+          paddingLeft: Math.max(insets.left, spacing.xs),
+          paddingRight: Math.max(insets.right, spacing.xs),
         },
       ]}
     >
@@ -38,7 +65,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
         const focused = index === state.index;
         const { options } = descriptors[route.key];
         const label = options.title ?? route.name;
-        const color = focused ? colors.primary : colors.textMuted;
+        const color = focused ? colors.onLilac : colors.textMuted;
 
         const onPress = () => {
           const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -53,23 +80,25 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
             accessibilityState={{ selected: focused }}
             testID={`aba-${route.name}`}
             onPress={onPress}
+            onLayout={(e) => {
+              if (twoRows) return;
+              itemTops.set(index, e.nativeEvent.layout.y);
+              if (itemTops.size === state.routes.length) {
+                const tops = [...itemTops.values()];
+                const isWrapped = Math.max(...tops) - Math.min(...tops) > 1;
+                if (isWrapped) setWrapped({ key: layoutKey, value: true });
+              }
+            }}
             style={({ pressed }) => [
               styles.item,
-              { backgroundColor: focused || pressed ? colors.surface : 'transparent' },
+              twoRows ? styles.itemTwoRows : null,
+              { backgroundColor: pressed ? colors.lilacSurface : 'transparent' },
             ]}
           >
-            <View style={[styles.indicator, { backgroundColor: focused ? colors.primary : 'transparent' }]} />
-            {options.tabBarIcon?.({ focused, color, size: TAB_ICON_SIZE })}
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              // Só encolhe em telas com menos de 360 px, e nunca abaixo de 18 px.
-              minimumFontScale={TAB_LABEL_MIN_SIZE / TAB_LABEL_SIZE}
-              maxFontSizeMultiplier={1}
-              style={[styles.label, { color, fontWeight: focused ? '800' : '500' }]}
-            >
-              {label}
-            </Text>
+            <View style={[styles.iconPill, { backgroundColor: focused ? colors.lilacSelected : 'transparent' }]}>
+              {options.tabBarIcon?.({ focused, color, size: TAB_ICON_SIZE })}
+            </View>
+            <Text style={[styles.label, { color, fontWeight: focused ? '800' : '500' }]}>{label}</Text>
           </Pressable>
         );
       })}
@@ -80,32 +109,35 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     borderTopWidth: 1,
+    paddingTop: spacing.xs,
   },
   item: {
     // A largura acompanha o tamanho do texto ("Histórico" precisa de mais espaço que "Hoje").
     flexGrow: 1,
-    flexShrink: 1,
     flexBasis: 'auto',
     minWidth: MIN_TOUCH_SIZE,
     minHeight: 64,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 2,
-    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
     gap: 2,
   },
-  indicator: {
-    position: 'absolute',
-    top: 0,
-    left: spacing.xs,
-    right: spacing.xs,
-    height: 4,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
+  itemTwoRows: {
+    flexBasis: '50%',
+    maxWidth: '50%',
+  },
+  iconPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
   },
   label: {
     fontSize: TAB_LABEL_SIZE,
+    lineHeight: Math.round(TAB_LABEL_SIZE * 1.25),
     textAlign: 'center',
   },
 });

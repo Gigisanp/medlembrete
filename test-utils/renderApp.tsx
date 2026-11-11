@@ -2,14 +2,17 @@ import { renderRouter } from 'expo-router/testing-library';
 
 import RootLayout from '@/app/_layout';
 import TabsLayout from '@/app/(tabs)/_layout';
-import HelpScreen from '@/app/(tabs)/ajuda';
-import SettingsScreen from '@/app/(tabs)/configuracoes';
+import EditContactScreen from '@/app/(tabs)/ajuda/[id]';
+import * as helpLayout from '@/app/(tabs)/ajuda/_layout';
+import HelpScreen from '@/app/(tabs)/ajuda/index';
+import NewContactScreen from '@/app/(tabs)/ajuda/novo-contato';
 import HistoryScreen from '@/app/(tabs)/historico';
 import HomeScreen from '@/app/(tabs)/index';
 import EditMedicationScreen from '@/app/(tabs)/medicamentos/[id]';
 import * as medicationsLayout from '@/app/(tabs)/medicamentos/_layout';
 import MedicationsScreen from '@/app/(tabs)/medicamentos/index';
 import NewMedicationScreen from '@/app/(tabs)/medicamentos/novo';
+import SettingsScreen from '@/app/configuracoes';
 import PermissionScreen from '@/app/permissao';
 import OnboardingScreen from '@/app/questionario';
 import RecordScreen from '@/app/registro';
@@ -32,6 +35,8 @@ export const notificationsMock = require('expo-notifications') as {
     trigger: { date: Date };
   }[];
   __respond: (request: unknown, actionIdentifier?: string) => void;
+  __setPresented: (ids: string[]) => void;
+  __getPresented: () => string[];
 };
 
 export const routes = {
@@ -44,11 +49,14 @@ export const routes = {
   '(tabs)/medicamentos/novo': NewMedicationScreen,
   '(tabs)/medicamentos/[id]': EditMedicationScreen,
   '(tabs)/historico': HistoryScreen,
-  '(tabs)/ajuda': HelpScreen,
-  '(tabs)/configuracoes': SettingsScreen,
+  '(tabs)/ajuda/_layout': helpLayout,
+  '(tabs)/ajuda/index': HelpScreen,
+  '(tabs)/ajuda/novo-contato': NewContactScreen,
+  '(tabs)/ajuda/[id]': EditContactScreen,
   questionario: OnboardingScreen,
   registro: RecordScreen,
   permissao: PermissionScreen,
+  configuracoes: SettingsScreen,
 };
 
 /** Banco novo e vazio, como na primeira abertura do app (avisos ainda sem permissão). */

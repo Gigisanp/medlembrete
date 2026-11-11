@@ -5,12 +5,17 @@ import {
   fontScales,
   initialFontSizeForAge,
   MIN_BASE_FONT_SIZE,
+  nonTextColorPairs,
   textColorPairs,
 } from '@/theme/tokens';
 
 describe('contraste', () => {
   it.each(textColorPairs)('%s sobre %s tem pelo menos 4,5:1', (fg, bg) => {
     expect(contrastRatio(colors[fg], colors[bg])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(nonTextColorPairs)('limite/ícone %s sobre %s tem pelo menos 3:1', (fg, bg) => {
+    expect(contrastRatio(colors[fg], colors[bg])).toBeGreaterThanOrEqual(3);
   });
 
   it('calcula o caso extremo preto sobre branco (21:1)', () => {

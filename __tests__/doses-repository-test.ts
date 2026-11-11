@@ -98,7 +98,9 @@ describe('registro de doses no banco', () => {
     `);
     await migrateDbIfNeeded(old);
     const oldDb = old as unknown as Db;
-    expect(await listMedications(oldDb)).toEqual([{ id: 1, name: 'Remédio A', note: '', times: ['08:00'] }]);
+    expect(await listMedications(oldDb)).toEqual([
+      { id: 1, name: 'Remédio A', note: '', times: ['08:00'], createdAt: '2026-11-01' },
+    ]);
     expect(await listDoseLogsSince(oldDb, '2026-01-01')).toEqual([]);
     old.close();
   });

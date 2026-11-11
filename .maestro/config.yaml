@@ -1,0 +1,7 @@
+flows:
+  - "01-*.yaml"
+  - "02-*.yaml"
+  - "03-*.yaml"
+  - "04-*.yaml"
+executionOrder:
+  continueOnFailure: false

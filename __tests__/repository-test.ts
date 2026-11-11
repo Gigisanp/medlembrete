@@ -42,11 +42,13 @@ describe('banco local', () => {
   it('cria, lê, edita e remove um medicamento', async () => {
     const id = await createMedication(db, { name: 'Remédio A', note: 'após o café', times: ['20:00', '08:00'] });
     expect(await listMedications(db)).toEqual([
-      { id, name: 'Remédio A', note: 'após o café', times: ['08:00', '20:00'] },
+      { id, name: 'Remédio A', note: 'após o café', times: ['08:00', '20:00'], createdAt: expect.any(String) },
     ]);
 
     await updateMedication(db, id, { name: 'Remédio A2', note: '', times: ['09:00'] });
-    expect(await listMedications(db)).toEqual([{ id, name: 'Remédio A2', note: '', times: ['09:00'] }]);
+    expect(await listMedications(db)).toEqual([
+      { id, name: 'Remédio A2', note: '', times: ['09:00'], createdAt: expect.any(String) },
+    ]);
 
     await deleteMedication(db, id);
     expect(await listMedications(db)).toEqual([]);

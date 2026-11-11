@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { AndroidImportance, AndroidNotificationVisibility } from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
 
 import type { PlannedNotification } from '@/domain/doses';
@@ -10,6 +11,8 @@ import type { PlannedNotification } from '@/domain/doses';
 
 export const CHANNEL_ID = 'lembretes';
 export const CATEGORY_ID = 'dose';
+/** Aviso com mais de um remédio: o botão diz "Tomei todos", para ficar claro o que é registrado. */
+export const CATEGORY_MULTI_ID = 'dose-varios';
 export const ACTION_TAKEN = 'ja-tomei';
 export const ACTION_NOT_YET = 'ainda-nao';
 
@@ -25,7 +28,7 @@ const TEST_REPEAT_ID = 'teste-1';
 export type PermissionState = 'granted' | 'denied' | 'undetermined';
 
 export type NotificationData =
-  | { kind: 'dose'; date: string; time: string; attempt: number }
+  | { kind: 'dose'; date: string; time: string; attempt: number; count?: number }
   | { kind: 'test'; attempt: number };
 
 let configured = false;
@@ -47,15 +50,19 @@ export async function configureNotifications(): Promise<void> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Lembretes de remédio',
-      importance: Notifications.AndroidImportance.MAX,
+      importance: AndroidImportance.MAX,
       sound: 'default',
       vibrationPattern: [0, 600, 300, 600],
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      lockscreenVisibility: AndroidNotificationVisibility.PUBLIC,
     });
   }
 
   await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
     { identifier: ACTION_TAKEN, buttonTitle: 'Já tomei', options: { opensAppToForeground: true } },
+    { identifier: ACTION_NOT_YET, buttonTitle: 'Ainda não', options: { opensAppToForeground: true } },
+  ]);
+  await Notifications.setNotificationCategoryAsync(CATEGORY_MULTI_ID, [
+    { identifier: ACTION_TAKEN, buttonTitle: 'Tomei todos', options: { opensAppToForeground: true } },
     { identifier: ACTION_NOT_YET, buttonTitle: 'Ainda não', options: { opensAppToForeground: true } },
   ]);
 }
@@ -109,6 +116,21 @@ export function syncScheduledDoses(planned: PlannedNotification[]): Promise<void
   return queue;
 }
 
+/**
+ * "Apagar tudo": cancela todos os avisos agendados (doses, repetições e teste)
+ * e tira da central de notificações os que já apareceram.
+ * Passa pela mesma fila da sincronização, para nenhum agendamento em andamento voltar depois.
+ * Se falhar, o erro é repassado (quem chamou não deve apagar os dados nem mostrar sucesso).
+ */
+export function cancelAllNotifications(): Promise<void> {
+  const run = queue.then(async () => {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    await Notifications.dismissAllNotificationsAsync();
+  });
+  queue = run.catch(() => undefined);
+  return run;
+}
+
 /** Aviso de teste em 10 segundos, com repetição em 1 minuto. Não registra nada. */
 export async function scheduleTestNotification(): Promise<void> {
   await configureNotifications();
@@ -149,7 +171,7 @@ async function schedule(id: string, title: string, body: string, data: Notificat
       body,
       data,
       sound: 'default',
-      categoryIdentifier: CATEGORY_ID,
+      categoryIdentifier: data.kind === 'dose' && (data.count ?? 1) > 1 ? CATEGORY_MULTI_ID : CATEGORY_ID,
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,

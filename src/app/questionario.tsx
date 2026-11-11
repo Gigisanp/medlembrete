@@ -1,9 +1,10 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, BackHandler, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/AppButton';
 import { AppText } from '@/components/AppText';
+import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { TextField } from '@/components/TextField';
 import { TimeInputs } from '@/components/TimeInputs';
@@ -37,6 +38,7 @@ const emptyDraft = (): Draft => ({ name: '', times: [''], note: '' });
  */
 export default function OnboardingScreen() {
   const { completeOnboarding, setFontSize, settings } = useAppData();
+  const { apagado } = useLocalSearchParams<{ apagado?: string }>();
   const { colors } = useTheme();
 
   const [step, setStep] = useState<Step>({ kind: 'age' });
@@ -46,6 +48,32 @@ export default function OnboardingScreen() {
   const [nameErrors, setNameErrors] = useState<(string | undefined)[]>([]);
   const [timeErrors, setTimeErrors] = useState<MedicationErrors>({});
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const pendingLeave = useRef<(() => void) | null>(null);
+
+  // Ao refazer pelos Ajustes, sair no meio pergunta antes de descartar as respostas.
+  const dirty = ageText.trim() !== '' || drafts.some((d) => d.name.trim() !== '');
+  usePreventRemove(dirty && !leaving, ({ repeat }) => {
+    Alert.alert('Sair do questionário?', 'As respostas que você digitou serão perdidas.', [
+      { text: 'Continuar respondendo', style: 'cancel' },
+      {
+        text: 'Sair sem salvar',
+        style: 'destructive',
+        onPress: () => {
+          pendingLeave.current = repeat;
+          setLeaving(true);
+        },
+      },
+    ]);
+  });
+  useEffect(() => {
+    if (leaving && pendingLeave.current) {
+      const go = pendingLeave.current;
+      pendingLeave.current = null;
+      go();
+    }
+  }, [leaving]);
 
   const updateDraft = (index: number, patch: Partial<Draft>) =>
     setDrafts((list) => list.map((d, i) => (i === index ? { ...d, ...patch } : d)));
@@ -121,21 +149,66 @@ export default function OnboardingScreen() {
 
   async function confirm() {
     setSaving(true);
+    setSaveError(false);
+    setLeaving(true);
     try {
       await completeOnboarding({ age: age.ok ? age.value : null, medications: medicationsToSave });
-      // Primeira abertura: não há tela anterior. Ao refazer pela aba Ajustes: volta para Hoje.
-      if (router.canDismiss()) router.dismissAll();
-      else router.replace('/');
-    } finally {
+    } catch {
+      setSaveError(true);
+      setLeaving(false);
       setSaving(false);
+      return;
     }
+    setSaving(false);
+    // Primeira abertura: não há tela anterior. Ao refazer pelos Ajustes: volta para Hoje.
+    if (router.canDismiss()) router.dismissAll();
+    else router.replace('/');
   }
+
+  /** Volta uma pergunta (botão "Voltar" da tela e botão físico do Android). */
+  function previousStep(): boolean {
+    setTimeErrors({});
+    if (step.kind === 'names') setStep({ kind: 'age' });
+    else if (step.kind === 'times') setStep(step.index === 0 ? { kind: 'names' } : { kind: 'times', index: step.index - 1 });
+    else if (step.kind === 'summary')
+      setStep(medicationsToSave.length ? { kind: 'times', index: drafts.length - 1 } : { kind: 'names' });
+    else return false;
+    return true;
+  }
+  const previousStepRef = useRef(previousStep);
+  useEffect(() => {
+    previousStepRef.current = previousStep;
+  });
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => previousStepRef.current());
+    return () => sub.remove();
+  }, []);
 
   const stepNumber = { age: 1, names: 2, times: 3, summary: 4 }[step.kind];
 
   return (
-    <Screen>
-      <AppText muted>{`Passo ${stepNumber} de ${TOTAL_STEPS}`}</AppText>
+    <Screen title="Primeiros passos" back={router.canGoBack()}>
+      <View style={styles.progress} accessible accessibilityLabel={`Passo ${stepNumber} de ${TOTAL_STEPS}`}>
+        <AppText bold color="onLilac">{`Passo ${stepNumber} de ${TOTAL_STEPS}`}</AppText>
+        <View style={styles.progressBar}>
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.progressSegment,
+                { backgroundColor: i < stepNumber ? colors.onLilac : colors.lilacSelected },
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+
+      {step.kind === 'age' && apagado === '1' ? (
+        <Card tone="success" title="Os seus dados foram apagados" icon="checkmark-circle" accessibilityLiveRegion="polite">
+          <AppText color="successText">Não há mais remédios, registros, contatos nem avisos neste celular.</AppText>
+        </Card>
+      ) : null}
 
       {step.kind === 'age' ? (
         <>
@@ -151,7 +224,7 @@ export default function OnboardingScreen() {
             maxLength={3}
             error={ageError}
           />
-          <AppButton label="Continuar" variant="primary" onPress={submitAge} />
+          <AppButton label="Continuar" variant="primary" icon="arrow-forward" onPress={submitAge} />
           <AppButton
             label="Pular"
             onPress={() => {
@@ -180,15 +253,16 @@ export default function OnboardingScreen() {
               {drafts.length > 1 ? (
                 <AppButton
                   label={`Remover medicamento ${index + 1}`}
+                  icon="trash-outline"
                   onPress={() => setDrafts((list) => list.filter((_, i) => i !== index))}
                 />
               ) : null}
             </View>
           ))}
-          <AppButton label="Adicionar outro" onPress={() => setDrafts((list) => [...list, emptyDraft()])} />
-          <AppButton label="Continuar" variant="primary" onPress={submitNames} />
+          <AppButton label="Adicionar outro" icon="add-circle-outline" onPress={() => setDrafts((list) => [...list, emptyDraft()])} />
+          <AppButton label="Continuar" variant="primary" icon="arrow-forward" onPress={submitNames} />
           <AppButton label="Pular" onPress={skipNames} />
-          <AppButton label="Voltar" onPress={() => setStep({ kind: 'age' })} />
+          <AppButton label="Voltar" icon="arrow-back" onPress={previousStep} />
         </>
       ) : null}
 
@@ -211,22 +285,18 @@ export default function OnboardingScreen() {
             multiline
             error={timeErrors.note}
           />
-          <AppButton label="Continuar" variant="primary" onPress={() => submitTimes(step.index)} />
+          <AppButton label="Continuar" variant="primary" icon="arrow-forward" onPress={() => submitTimes(step.index)} />
           <AppButton label="Pular" onPress={() => skipTimes(step.index)} />
-          <AppButton
-            label="Voltar"
-            onPress={() => {
-              setTimeErrors({});
-              setStep(step.index === 0 ? { kind: 'names' } : { kind: 'times', index: step.index - 1 });
-            }}
-          />
+          <AppButton label="Voltar" icon="arrow-back" onPress={previousStep} />
         </>
       ) : null}
 
       {step.kind === 'summary' ? (
         <>
           <AppText size="title">Confira os dados</AppText>
-          <AppText bold>Estes são os horários que a sua receita indicou. Confira com atenção.</AppText>
+          <Card tone="lilac">
+            <AppText bold>Estes são os horários que a sua receita indicou. Confira com atenção.</AppText>
+          </Card>
 
           {age.ok && age.value != null ? <AppText>{`Idade: ${age.value} anos`}</AppText> : null}
 
@@ -234,25 +304,35 @@ export default function OnboardingScreen() {
             <AppText>Nenhum medicamento informado. Você pode cadastrar depois, na aba Remédios.</AppText>
           ) : (
             medicationsToSave.map((med, index) => (
-              <View key={index} style={[styles.summaryItem, { borderColor: colors.border }]}>
-                <AppText bold>{med.name}</AppText>
+              <Card key={index}>
+                <AppText size="heading">{med.name}</AppText>
                 <AppText>
                   {med.times.length ? `Horários: ${med.times.join(', ')}` : 'Sem horário. Você pode adicionar depois, na aba Remédios.'}
                 </AppText>
                 {med.note ? <AppText muted>{`Observação: ${med.note}`}</AppText> : null}
-              </View>
+              </Card>
             ))
           )}
 
           <AppText muted>Em caso de dúvida, fale com o seu médico ou farmacêutico.</AppText>
 
-          <AppButton label="Confirmar" variant="primary" onPress={confirm} disabled={saving} />
+          {saveError ? (
+            <View style={[styles.error, { backgroundColor: colors.dangerSurface }]}>
+              <AppText bold color="dangerText" accessibilityLiveRegion="polite">
+                ⚠ Não foi possível salvar. As respostas continuam aqui. Tente de novo.
+              </AppText>
+            </View>
+          ) : null}
+
           <AppButton
-            label="Voltar e corrigir"
-            onPress={() =>
-              setStep(medicationsToSave.length ? { kind: 'times', index: drafts.length - 1 } : { kind: 'names' })
-            }
+            label="Confirmar"
+            variant="primary"
+            icon="checkmark"
+            onPress={confirm}
+            loading={saving}
+            loadingLabel="Salvando…"
           />
+          <AppButton label="Voltar e corrigir" icon="arrow-back" onPress={previousStep} />
         </>
       ) : null}
     </Screen>
@@ -261,10 +341,12 @@ export default function OnboardingScreen() {
 
 const styles = StyleSheet.create({
   group: { gap: spacing.sm },
-  summaryItem: {
-    borderWidth: 2,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.sm,
+  progress: { gap: spacing.sm },
+  progressBar: { flexDirection: 'row', gap: spacing.xs },
+  progressSegment: { flex: 1, height: 8, borderRadius: radius.pill },
+  error: {
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
 });

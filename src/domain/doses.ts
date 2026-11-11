@@ -45,7 +45,7 @@ export type PlannedNotification = {
   at: Date;
   title: string;
   body: string;
-  data: { kind: 'dose'; date: string; time: string; attempt: number };
+  data: { kind: 'dose'; date: string; time: string; attempt: number; count: number };
 };
 
 // ---------- Datas ----------
@@ -70,14 +70,32 @@ export function formatClock(d: Date): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** "daqui a 1 h 20 min", "daqui a 5 min", "agora". */
+/** Frase natural: "Daqui a 40 minutos", "Daqui a 1 hora e 20 minutos", "Agora". */
 export function formatCountdown(from: Date, to: Date): string {
   const minutes = Math.ceil((to.getTime() - from.getTime()) / 60_000);
-  if (minutes <= 0) return 'agora';
+  if (minutes <= 0) return 'Agora';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  if (h === 0) return `daqui a ${m} min`;
-  return m === 0 ? `daqui a ${h} h` : `daqui a ${h} h ${m} min`;
+  const hours = h === 1 ? '1 hora' : `${h} horas`;
+  const mins = m === 1 ? '1 minuto' : `${m} minutos`;
+  if (h === 0) return `Daqui a ${mins}`;
+  return m === 0 ? `Daqui a ${hours}` : `Daqui a ${hours} e ${mins}`;
+}
+
+const WEEKDAYS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+const MONTHS = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+];
+
+/** "Quarta-feira, 11 de novembro". */
+export function formatLongDate(d: Date): string {
+  return `${WEEKDAYS[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+}
+
+/** "o remédio" / "os 2 remédios", para deixar claro o que está sendo confirmado. */
+export function countLabel(count: number): string {
+  return count === 1 ? 'o remédio' : `os ${count} remédios`;
 }
 
 function pad(n: number): string {
@@ -186,8 +204,13 @@ export function planNotifications({
         id: notificationId(slot.date, slot.time, attempt),
         at,
         title: attempt === 0 ? 'Hora do remédio' : 'Lembrete: hora do remédio',
-        body: `${slot.time} — ${names}. Você já tomou?`,
-        data: { kind: 'dose', date: slot.date, time: slot.time, attempt },
+        // Com mais de um remédio, o aviso diz quantos são e pergunta se tomou todos,
+        // porque "Já tomei" registra todos os remédios desse horário de uma vez.
+        body:
+          slot.medications.length === 1
+            ? `${slot.time} — ${names}. Você já tomou?`
+            : `${slot.time} — ${slot.medications.length} remédios: ${names}. Você tomou todos?`,
+        data: { kind: 'dose', date: slot.date, time: slot.time, attempt, count: slot.medications.length },
       });
     });
   }

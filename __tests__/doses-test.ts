@@ -35,7 +35,8 @@ describe('planNotifications', () => {
 
   it('junta os medicamentos do mesmo horário em um aviso só', () => {
     const planned = planNotifications({ medications: meds, logs: [], snoozes: [], now: at(7, 0), days: 1, limit: 100 });
-    expect(planned[0].body).toBe('08:00 — Remédio A, Remédio B. Você já tomou?');
+    expect(planned[0].body).toBe('08:00 — 2 remédios: Remédio A, Remédio B. Você tomou todos?');
+    expect(planned[0].data.count).toBe(2);
     expect(planned[0].id).toBe('dose-2026-11-11-08:00-0');
   });
 
@@ -126,9 +127,11 @@ describe('status do dia', () => {
   });
 
   it('contagem regressiva', () => {
-    expect(formatCountdown(at(7, 0), at(8, 0))).toBe('daqui a 1 h');
-    expect(formatCountdown(at(7, 0), at(8, 25))).toBe('daqui a 1 h 25 min');
-    expect(formatCountdown(at(7, 50), at(8, 0))).toBe('daqui a 10 min');
-    expect(formatCountdown(at(8, 0), at(8, 0))).toBe('agora');
+    expect(formatCountdown(at(7, 0), at(8, 0))).toBe('Daqui a 1 hora');
+    expect(formatCountdown(at(6, 0), at(8, 0))).toBe('Daqui a 2 horas');
+    expect(formatCountdown(at(7, 0), at(8, 25))).toBe('Daqui a 1 hora e 25 minutos');
+    expect(formatCountdown(at(7, 20), at(8, 0))).toBe('Daqui a 40 minutos');
+    expect(formatCountdown(at(7, 59), at(8, 0))).toBe('Daqui a 1 minuto');
+    expect(formatCountdown(at(8, 0), at(8, 0))).toBe('Agora');
   });
 });

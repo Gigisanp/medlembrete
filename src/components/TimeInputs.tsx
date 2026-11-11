@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { EXAMPLE_TIME } from '@/domain/examples';
 import { LIMITS } from '@/domain/medication';
 import { useTheme } from '@/theme/ThemeProvider';
-import { spacing } from '@/theme/tokens';
+import { radius, spacing } from '@/theme/tokens';
 
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
@@ -39,17 +39,19 @@ export function TimeInputs({ times, onChange, error, itemErrors }: Props) {
             error={itemErrors?.[index]}
           />
           {times.length > 1 ? (
-            <AppButton label={`Remover horário ${index + 1}`} onPress={() => removeAt(index)} />
+            <AppButton label={`Remover horário ${index + 1}`} icon="trash-outline" onPress={() => removeAt(index)} />
           ) : null}
         </View>
       ))}
       {error ? (
-        <AppText bold style={{ color: colors.danger }} accessibilityLiveRegion="polite">
-          {`⚠ ${error}`}
-        </AppText>
+        <View style={[styles.error, { backgroundColor: colors.dangerSurface }]}>
+          <AppText bold color="dangerText" accessibilityLiveRegion="polite">
+            {`⚠ ${error}`}
+          </AppText>
+        </View>
       ) : null}
       {times.length < LIMITS.timesPerMedication ? (
-        <AppButton label="Adicionar outro horário" onPress={() => onChange([...times, ''])} />
+        <AppButton label="Adicionar outro horário" icon="add-circle-outline" onPress={() => onChange([...times, ''])} />
       ) : null}
     </View>
   );
@@ -58,4 +60,9 @@ export function TimeInputs({ times, onChange, error, itemErrors }: Props) {
 const styles = StyleSheet.create({
   wrapper: { gap: spacing.md },
   item: { gap: spacing.sm },
+  error: {
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
 });

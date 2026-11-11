@@ -9,9 +9,11 @@ export type Medication = {
   name: string;
   note: string;
   times: string[];
+  /** Data e hora do cadastro (ISO). Usada no histórico para não mostrar dias anteriores ao cadastro. */
+  createdAt?: string;
 };
 
-export type MedicationInput = Omit<Medication, 'id'>;
+export type MedicationInput = Omit<Medication, 'id' | 'createdAt'>;
 
 /** Texto cru dos campos do formulário, antes da validação. */
 export type MedicationDraft = {

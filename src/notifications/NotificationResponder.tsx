@@ -46,13 +46,17 @@ export function NotificationResponder() {
       }
 
       const params: Record<string, string> = { date: data.date, time: data.time };
-      if (actionIdentifier === ACTION_TAKEN) {
-        await confirmDose(data.date, data.time);
-        params.result = 'saved';
-      } else if (actionIdentifier === ACTION_NOT_YET) {
-        const until = await snoozeDose(data.date, data.time);
-        params.result = 'snoozed';
-        params.until = formatClock(until);
+      try {
+        if (actionIdentifier === ACTION_TAKEN) {
+          await confirmDose(data.date, data.time);
+          params.result = 'saved';
+        } else if (actionIdentifier === ACTION_NOT_YET) {
+          const until = await snoozeDose(data.date, data.time);
+          params.result = 'snoozed';
+          params.until = formatClock(until);
+        }
+      } catch {
+        // Se não salvou, abre a pergunta "Você tomou?" para a pessoa tentar de novo.
       }
       router.push({ pathname: '/registro', params });
     })();

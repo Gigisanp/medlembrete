@@ -1,0 +1,17 @@
+# Cadastro de medicamento com validação, sem campo de dose.
+appId: host.exp.exponent
+---
+- runFlow: _abrir-app-limpo.yaml
+- tapOn: "Remédios"
+- tapOn: "Cadastrar medicamento"
+- assertNotVisible: "Dose"
+- tapOn: "Salvar medicamento"
+- assertVisible: "⚠ Digite o nome do medicamento."
+- tapOn: "Nome do medicamento"
+- inputText: "Remédio Teste"
+- tapOn: "Horário 1"
+- inputText: "8h30"
+- hideKeyboard
+- tapOn: "Salvar medicamento"
+- assertVisible: "Remédio Teste"
+- assertVisible: "08:30"

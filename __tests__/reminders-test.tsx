@@ -59,7 +59,8 @@ describe('avisos no horário', () => {
   it('sem permissão, não agenda e mostra que os avisos estão desligados', async () => {
     await databaseAfterOnboarding([{ name: 'Remédio A', note: '', times: ['10:00'] }], { permission: 'denied' });
     await renderApp();
-    expect(await screen.findByText('⚠ Os avisos estão desligados.')).toBeOnTheScreen();
+    expect(await screen.findByText('Os avisos estão desligados')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Ligar avisos' })).toBeOnTheScreen();
     expect(scheduledDoses()).toEqual([]);
   });
 });
@@ -70,14 +71,15 @@ describe('"Já tomei" na tela Hoje', () => {
     await renderApp();
 
     // 08:50 já passou e não foi confirmado: aparece em destaque (repetições às 09:10 e 09:20)
-    expect(await screen.findByText('⏰ Hora do remédio')).toBeOnTheScreen();
-    expect(screen.getByText('⏰ Pendente')).toBeOnTheScreen();
+    expect(await screen.findByText('Ainda não confirmado')).toBeOnTheScreen();
+    expect(screen.getByText('O horário já passou.')).toBeOnTheScreen();
     await waitFor(() => expect(scheduledDoses()).toContain('11/09:10 Lembrete: hora do remédio'));
 
     await press('Já tomei');
 
     expect(await screen.findByText('✓ Registro salvo com sucesso')).toBeOnTheScreen();
-    expect(screen.getByText('Confirmado às 09:00.')).toBeOnTheScreen();
+    expect(screen.getByText('Horário previsto: 08:50')).toBeOnTheScreen();
+    expect(screen.getByText('Registrado às 09:00')).toBeOnTheScreen();
 
     const logs = await listDoseLogsSince(asDb(db), '2026-11-11');
     expect(logs).toHaveLength(1);
@@ -87,9 +89,11 @@ describe('"Já tomei" na tela Hoje', () => {
     await waitFor(() => expect(scheduledDoses().some((s) => s.startsWith('11/09:'))).toBe(false));
 
     await press('Voltar para Hoje');
-    expect(await screen.findByText('✓ Tomado às 09:00')).toBeOnTheScreen();
-    expect(screen.getByText('Próximo lembrete')).toBeOnTheScreen();
-    expect(screen.getByText('Começa daqui a 11 h.')).toBeOnTheScreen();
+    expect(await screen.findByText('Tomado às 09:00')).toBeOnTheScreen();
+    // Horário futuro aparece neutro, como "Próximo horário", e não como pendência
+    expect(screen.getByText('Próximo horário')).toBeOnTheScreen();
+    expect(screen.getByText('Daqui a 11 horas')).toBeOnTheScreen();
+    expect(screen.queryByText('Ainda não confirmado')).toBeNull();
   });
 });
 
@@ -213,7 +217,8 @@ describe('aviso de teste', () => {
     const test = notificationsMock.__getScheduled().find((r) => r.identifier === 'teste-0')!;
     notificationsMock.__respond(test, ACTION_TAKEN);
 
-    expect(await screen.findByText('Este foi só um teste. Nada foi registrado.')).toBeOnTheScreen();
+    expect(await screen.findByText('Este foi só um teste')).toBeOnTheScreen();
+    expect(screen.getByText('Nada foi registrado.')).toBeOnTheScreen();
     expect(await listDoseLogsSince(asDb(db), '2026-11-01')).toEqual([]);
     expect(notificationsMock.__getScheduled().some((r) => r.identifier === 'teste-1')).toBe(false);
   });

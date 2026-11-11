@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { DEFAULT_REPEAT_MINUTES, REPEAT_OPTIONS, type DoseLog, type Snooze } from '@/domain/doses';
+import type { HelpContact, HelpContactInput } from '@/domain/contact';
 import type { Medication, MedicationInput } from '@/domain/medication';
 import { sortTimes } from '@/domain/time';
 import { FONT_SIZE_OPTIONS, type FontSizeOption } from '@/theme/tokens';
@@ -24,8 +25,8 @@ export type Settings = {
 // ---------- Medicamentos ----------
 
 export async function listMedications(db: Queryable): Promise<Medication[]> {
-  const meds = await db.getAllAsync<{ id: number; name: string; note: string }>(
-    'SELECT id, name, note FROM medications ORDER BY id',
+  const meds = await db.getAllAsync<{ id: number; name: string; note: string; createdAt: string }>(
+    'SELECT id, name, note, created_at AS createdAt FROM medications ORDER BY id',
   );
   const times = await db.getAllAsync<{ medication_id: number; time: string }>(
     'SELECT medication_id, time FROM medication_times',
@@ -177,6 +178,60 @@ export async function listSnoozesSince(db: Queryable, fromDate: string): Promise
     'SELECT scheduled_date AS date, scheduled_time AS time, until FROM snoozes WHERE scheduled_date >= ?',
     fromDate,
   );
+}
+
+// ---------- Contatos de ajuda ----------
+
+export async function listContacts(db: Queryable): Promise<HelpContact[]> {
+  return db.getAllAsync<HelpContact>('SELECT id, name, phone FROM help_contacts ORDER BY id');
+}
+
+export async function createContact(db: Queryable, input: HelpContactInput): Promise<number> {
+  const result = await db.runAsync(
+    'INSERT INTO help_contacts (name, phone, created_at) VALUES (?, ?, ?)',
+    input.name,
+    input.phone,
+    new Date().toISOString(),
+  );
+  return Number(result.lastInsertRowId);
+}
+
+export async function updateContact(db: Queryable, id: number, input: HelpContactInput): Promise<void> {
+  await db.runAsync('UPDATE help_contacts SET name = ?, phone = ? WHERE id = ?', input.name, input.phone, id);
+}
+
+export async function deleteContact(db: Queryable, id: number): Promise<void> {
+  await db.runAsync('DELETE FROM help_contacts WHERE id = ?', id);
+}
+
+// ---------- Apagar tudo ----------
+
+/** Tabelas com dados da pessoa. Todas são esvaziadas por "Apagar tudo". */
+export const USER_TABLES = [
+  'dose_logs',
+  'snoozes',
+  'medication_times',
+  'medications',
+  'help_contacts',
+  'settings',
+] as const;
+
+/**
+ * Remove todos os dados da pessoa: medicamentos, horários, registros, adiamentos,
+ * contatos de ajuda e preferências. Tudo numa transação: ou apaga tudo, ou nada.
+ */
+export async function wipeAllData(db: Db): Promise<void> {
+  await db.withExclusiveTransactionAsync(async (txn) => {
+    for (const table of USER_TABLES) {
+      await txn.runAsync(`DELETE FROM ${table}`);
+    }
+  });
+  // Compacta o arquivo para não sobrarem restos dos dados apagados. Se falhar, os dados já foram apagados.
+  try {
+    await db.execAsync('VACUUM');
+  } catch {
+    // ignora: os registros já não existem nas tabelas
+  }
 }
 
 async function setSetting(db: Queryable, key: string, value: string): Promise<void> {

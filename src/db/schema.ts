@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 export const DATABASE_NAME = 'medlembrete.db';
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 
 type MigrationDb = Pick<SQLiteDatabase, 'execAsync' | 'getFirstAsync'>;
 
@@ -58,6 +58,18 @@ export async function migrateDbIfNeeded(db: MigrationDb): Promise<void> {
         scheduled_time TEXT NOT NULL,
         until TEXT NOT NULL,
         PRIMARY KEY (scheduled_date, scheduled_time)
+      );
+    `);
+  }
+
+  if (current < 3) {
+    // Contatos de ajuda: só nome e telefone, guardados no aparelho.
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS help_contacts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        created_at TEXT NOT NULL
       );
     `);
   }
