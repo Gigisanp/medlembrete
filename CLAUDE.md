@@ -29,6 +29,14 @@ Protótipo de lembrete de medicamentos para idosos com doenças crônicas que us
 - Textos fixos na tela de resumo: "Estes são os horários que a sua receita indicou. Confira com atenção."
 - Todos os dados ficam no aparelho e são apagados pelo botão "Apagar tudo".
 
+## Navegação (abas inferiores)
+- O app tem uma barra de abas fixa na parte de baixo, com no máximo 5 abas e rótulos sempre visíveis, com ícone e texto.
+- Abas, nesta ordem: **Hoje** (tela de início), **Remédios** (lista e cadastro), **Histórico**, **Ajuda** e **Ajustes**.
+- O botão "Cadastrar medicamento" da tela Hoje também abre a aba Remédios.
+- Cada aba tem texto de 20 px ou mais e área de toque de pelo menos 44 px.
+- A aba ativa aparece com cor e peso de fonte diferentes, e não só pela cor.
+- Ajustes tem: tamanho da letra, apagar tudo, e (na fase 2) familiares vinculados.
+
 ## Telas (do protótipo)
 1. Início: próximo lembrete em destaque, botão "Já tomei" e lista dos próximos horários do dia.
 2. Registro: pergunta "Você tomou?" com "Sim, tomei" e "Ainda não". Confirmação "Registro salvo com sucesso".
